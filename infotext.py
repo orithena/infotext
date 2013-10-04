@@ -256,18 +256,20 @@ if __name__ == '__main__':
     else:
       return "0mm"
 
-  c = fetch_weather_data()
-  out.append(u"[openweather  %d°C  %s]" % (c['main']['temp'],c['weather'][0]['description']))
-  out.append(u"  %d°C < T < %d°C  rain %s  hum %d%%" %
-    (c['main']['temp_min'], c['main']['temp_max'], interpret_rain(c), c['main']['humidity']))
-  out.append(u"  wind  %sm/s %s %d°" % 
-    (numf(c['wind']['speed']), carddir(c['wind']['deg']), c['wind']['deg']))
-  if 'gust' in c['wind']:
-    out[-1] += "  gust %sm/s" % numf(c['wind']['gust'])
-  fore = u''
-  for dn,d in enumerate(c['forecast']['list'][1:]):
-    fore += u'  %s %.0f/%.0f°C %s' % (wday(dn+1), d['temp']['min'], d['temp']['max'], d['weather'][0]['main'])
-  out.append(fore);
+  try:
+    c = fetch_weather_data()
+    out.append(u"[openweather  %d°C  %s]" % (c['main']['temp'],c['weather'][0]['description']))
+    out.append(u"  %d°C < T < %d°C  rain %s  hum %d%%" %
+      (c['main']['temp_min'], c['main']['temp_max'], interpret_rain(c), c['main']['humidity']))
+    out.append(u"  wind  %sm/s %s %d°" % 
+      (numf(c['wind']['speed']), carddir(c['wind']['deg']), c['wind']['deg']))
+    if 'gust' in c['wind']:
+      out[-1] += "  gust %sm/s" % numf(c['wind']['gust'])
+    fore = u''
+    for dn,d in enumerate(c['forecast']['list'][1:]):
+      fore += u'  %s %.0f/%.0f°C %s' % (wday(dn+1), d['temp']['min'], d['temp']['max'], d['weather'][0]['main'])
+    out.append(fore);
+  except: pass
 
 
   ### output postprocessing
