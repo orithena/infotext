@@ -252,10 +252,10 @@ if __name__ == '__main__':
   def interpret_rain(c):
     if 'rain' in c:
       for k,v in c['rain'].iteritems():
-        return "rain %smm/%s" % (numf(v),k)
+        return "rain %.1fmm/%s" % (v,k)
     elif 'snow' in c:
       for k,v in c['snow'].iteritems():
-        return "snow %smm/%s" % (numf(v),k)
+        return "snow %.1fmm/%s" % (v,k)
     else:
       return "no rain"
 
