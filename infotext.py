@@ -14,6 +14,7 @@ Currently implemented:
 Written specifically for RaspberryPi, but useable on other systems too.
 
 Usage: Edit the configuration variables below to suit your needs. 
+You may want to apply for an app key (APPID) at http://openweathermap.org.
 Then configure xscreensaver to use any text-displaying screensaver
 (e.g. Phosphor, Apple2, StarWars, ...). Then, in the xscreensavers
 configuration dialog's advanced tab, configure this program as text source.
