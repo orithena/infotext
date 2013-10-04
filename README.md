@@ -34,3 +34,11 @@ Optional GL screensavers (slow on a raspi!):
 --------------------------------------------
 
 xscreensaver-gl xscreensaver-gl-extra libgl1-mesa-swx11
+
+
+Photos of the screensaver in action:
+------------------------------------
+
+  * StarWars: http://pic.twitter.com/QrB1CSWRoc
+  * Phosphor: http://pic.twitter.com/m5BqTuy69B
+
