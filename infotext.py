@@ -252,14 +252,17 @@ if __name__ == '__main__':
   def interpret_rain(c):
     if 'rain' in c:
       for k,v in c['rain'].iteritems():
-        return "%smm/%s" % (numf(v),k)
+        return "rain %smm/%s" % (numf(v),k)
+    elif 'snow' in c:
+      for k,v in c['snow'].iteritems():
+        return "snow %smm/%s" % (numf(v),k)
     else:
-      return "0mm"
+      return "no rain"
 
   try:
     c = fetch_weather_data()
     out.append(u"[openweather  %d°C  %s]" % (c['main']['temp'],c['weather'][0]['description']))
-    out.append(u"  %d°C < T < %d°C  rain %s  hum %d%%" %
+    out.append(u"  %d°C < T < %d°C  %s  hum %d%%" %
       (c['main']['temp_min'], c['main']['temp_max'], interpret_rain(c), c['main']['humidity']))
     out.append(u"  wind  %sm/s %s %d°" % 
       (numf(c['wind']['speed']), carddir(c['wind']['deg']), c['wind']['deg']))
