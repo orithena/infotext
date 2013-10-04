@@ -249,11 +249,17 @@ if __name__ == '__main__':
 
 
   ### format weather data
+  def interpret_rain(c):
+    if 'rain' in c:
+      for k,v in c['rain'].iteritems():
+        return "%smm/%s" % (numf(v),k)
+    else:
+      return "0mm"
 
   c = fetch_weather_data()
   out.append(u"[openweather  %d°C  %s]" % (c['main']['temp'],c['weather'][0]['description']))
-  out.append(u"  %d°C < T < %d°C  rain %.0fmm  hum %d%%" %
-    (c['main']['temp_min'], c['main']['temp_max'], c['rain']['3h'] , c['main']['humidity']))
+  out.append(u"  %d°C < T < %d°C  rain %s  hum %d%%" %
+    (c['main']['temp_min'], c['main']['temp_max'], interpret_rain(c), c['main']['humidity']))
   out.append(u"  wind  %sm/s %s %d°" % 
     (numf(c['wind']['speed']), carddir(c['wind']['deg']), c['wind']['deg']))
   if 'gust' in c['wind']:
