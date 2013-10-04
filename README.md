@@ -36,6 +36,22 @@ Optional GL screensavers (slow on a raspi!):
 xscreensaver-gl xscreensaver-gl-extra libgl1-mesa-swx11
 
 
+Example output:
+---------------
+
+[mpd playing #75/102  00:05/04:03 2%]
+  rock'n'roll hall of fame
+  pornophonique
+  8-bit lagerfeuer
+[openweather  12°C  broken clouds]
+  11°C < T < 15°C  rain 0mm  hum 54%
+  wind  6.3m/s SSE 164°
+  sat 14/21°C Rain  sun 14/18°C Clouds
+
+[03:54 04.10.13  cpu 71.5%  load 1.06]
+[mem 448776  free 10944  cache 302504]
+
+
 Photos of the screensaver in action:
 ------------------------------------
 
