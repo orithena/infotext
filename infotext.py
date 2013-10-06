@@ -50,24 +50,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+### configuration variables
+
+MAXLINES     = 17
+MAXLEN       = 40
+SHOWMPD      = True
+SHOWWEATHER  = True
+SHOWCPUTIME  = True
+SHOWTIME     = False
+SHOWMEM      = False
+
+WEATHERCITY  = 'dortmund'
+WEATHERAPPID = ''
+
+MPDHOST      = 'localhost'
+MPDPORT      = 6600
+
+# the following config variables probably do not need to be changed
+WEATHERDATAURL = 'http://api.openweathermap.org/data/2.5/weather?q=%s&units=metric&APPID=%s'
+WEATHERFORECASTURL = 'http://api.openweathermap.org/data/2.5/forecast/daily?q=%s&units=metric&cnt=3&APPID=%s'
+SAVEDIR = '/run/shm'
+
+
+### module imports
+
 import mpd
 import pickle
 import time
 from json import load as jsonload
 from urllib2 import urlopen
-
-
-### configuration variables
-
-MAXLINES = 16
-MAXLEN = 40
-MPDHOST = 'localhost'
-MPDPORT = 6600
-WEATHERCITY = 'dortmund'
-WEATHERAPPID = ''
-WEATHERDATAURL = 'http://api.openweathermap.org/data/2.5/weather?q=%s&units=metric&APPID=%s'
-WEATHERFORECASTURL = 'http://api.openweathermap.org/data/2.5/forecast/daily?q=%s&units=metric&cnt=3&APPID=%s'
-SAVEDIR = '/run/shm'
 
 
 ### some functions
@@ -196,56 +207,61 @@ def fetch_mpd_data():
 
 if __name__ == '__main__':
   # the output string list
+  # this list actually will contain tuples: (separation priority, output string).
+  # separation priority is used in the output postprocessing below to insert optional empty lines
+  # to fill the screen as near as possible to MAXLINES. In output postprocessing, first the lines
+  # with priority 1 will receive an empty line before and maybe after themselves, then the lines
+  # with priority 2, and so on. Priority 0 will never be expanded with empty lines.
   out = []
 
 
   ### format MPD data
-
-  d = fetch_mpd_data()
-  if d is not None and "state" in d and d["state"] == 'play':
-    # mpd is playing? full data output!
-    try:
-      # trying to interpret the mpd data
-      ct = int(float(d["elapsed"]))
-      t = 1
+  if SHOWMPD:
+    d = fetch_mpd_data()
+    if d is not None and "state" in d and d["state"] == 'play':
+      # mpd is playing? full data output!
       try:
-        t = int(d["time"])
-        out.append(u"[mpd playing #%s/%s  %02d:%02d/%02d:%02d %d%%]" % ( 
-                d["song"], 
-                d["playlistlength"], 
-                ct/60,
-                ct - ((ct/60)*60),
-                t/60,
-                t - ((t/60)*60),
-                int(ct*100/t)
-              ))
-      except:
-        # an exception from the try block above most likely means that d['time'] does not 
-        # contain a simple integer, which in turn most likely means that we are streaming
-        out.append(u"[mpd playing #%s/%s  streaming %02d:%02d]" % ( 
-          d["song"], 
-          d["playlistlength"], 
-          ct/60,
-          ct - ((ct/60)*60),
-        ))
+        # trying to interpret the mpd data
+        ct = int(float(d["elapsed"]))
+        t = 1
+        try:
+          t = int(d["time"])
+          out.append((1,u"[mpd playing #%s/%s  %02d:%02d/%02d:%02d %d%%]" % ( 
+                  d["song"], 
+                  d["playlistlength"], 
+                  ct/60,
+                  ct - ((ct/60)*60),
+                  t/60,
+                  t - ((t/60)*60),
+                  int(ct*100/t)
+                )))
+        except:
+          # an exception from the try block above most likely means that d['time'] does not 
+          # contain a simple integer, which in turn most likely means that we are streaming
+          out.append((1,u"[mpd playing #%s/%s  streaming %02d:%02d]" % ( 
+            d["song"], 
+            d["playlistlength"], 
+            ct/60,
+            ct - ((ct/60)*60),
+          )))
 
-      if 'title' in d and not 'artist' in d and ' - ' in d['title']:
-        # no artist, but a title -> streaming or bad tagging
-        # anyway, if we have ' - ' in title, we repair that by splitting up the title string
-        out += [ u"  %s" % u(s) for s in reversed(d['title'].split(' - ')) ]
-      else:
-        if "title" in d: out.append(u"  %s" % u(d["title"]))
-        if "artist" in d: out.append(u"  %s" % u(d["artist"]))
-        if "album" in d: out.append(u"  %s" % u(d["album"]))
-    except Exception as e:
-      # something went very wrong in the program code above
-      print("ERR while interpreting mpd data: " + e.message)
-  elif d is not None and "state" in d:
-    # mpd found, but not playing
-    out.append(u"[mpd status: %s]" % d["state"])
-  else:
-    # the mpd is a lie
-    out.append(u"[the mpd at %s:%d is a lie]" % (MPDHOST, MPDPORT))
+        if 'title' in d and not 'artist' in d and ' - ' in d['title']:
+          # no artist, but a title -> streaming or bad tagging
+          # anyway, if we have ' - ' in title, we repair that by splitting up the title string
+          out += [ (2,u"  %s" % u(s)) for s in reversed(d['title'].split(' - ')) ]
+        else:
+          if "title" in d: out.append((2,u"  %s" % u(d["title"])))
+          if "artist" in d: out.append((2,u"  %s" % u(d["artist"])))
+          if "album" in d: out.append((2,u"  %s" % u(d["album"])))
+      except Exception as e:
+        # something went very wrong in the program code above
+        print("ERR while interpreting mpd data: " + e.message)
+    elif d is not None and "state" in d:
+      # mpd found, but not playing
+      out.append((1,u"[mpd status: %s]" % d["state"]))
+    else:
+      # the mpd is a lie
+      out.append((1,u"[the mpd at %s:%d is a lie]" % (MPDHOST, MPDPORT)))
 
 
   ### format weather data
@@ -259,49 +275,83 @@ if __name__ == '__main__':
     else:
       return "no rain"
 
-  try:
-    c = fetch_weather_data()
-    out.append(u"[openweather  %d°C  %s]" % (c['main']['temp'],c['weather'][0]['description']))
-    out.append(u"  %d°C < T < %d°C  %s  hum %d%%" %
-      (c['main']['temp_min'], c['main']['temp_max'], interpret_rain(c), c['main']['humidity']))
-    out.append(u"  wind  %sm/s %s %d°" % 
-      (numf(c['wind']['speed']), carddir(c['wind']['deg']), c['wind']['deg']))
-    if 'gust' in c['wind']:
-      out[-1] += "  gust %sm/s" % numf(c['wind']['gust'])
-    fore = u''
-    for dn,d in enumerate(c['forecast']['list'][1:]):
-      fore += u'  %s %.0f/%.0f°C %s' % (wday(dn+1), d['temp']['min'], d['temp']['max'], d['weather'][0]['main'])
-    out.append(fore);
-  except: pass
+  if SHOWWEATHER:
+    try:
+      c = fetch_weather_data()
+      out.append((1,u"[openweather  %d°C  %s]" % (c['main']['temp'],c['weather'][0]['description'])))
+      out.append((2,u"  %d°C < T < %d°C  %s  hum %d%%" %
+        (c['main']['temp_min'], c['main']['temp_max'], interpret_rain(c), c['main']['humidity'])))
+      out.append((2,u"  wind  %sm/s %s %d°" % 
+        (numf(c['wind']['speed']), carddir(c['wind']['deg']), c['wind']['deg'])))
+      if 'gust' in c['wind']:
+        out[-1][1] += "  gust %sm/s" % numf(c['wind']['gust'])
+      fore = u''
+      for dn,d in enumerate(c['forecast']['list'][1:]):
+        fore += u'  %s %.0f/%.0f°C %s' % (wday(dn+1), d['temp']['min'], d['temp']['max'], d['weather'][0]['main'])
+      out.append((2,fore))
+    except: pass
 
 
-  ### output postprocessing
+  ### output postprocessing and system info
   
-  if len(out) < (MAXLINES - 3) / 2:
-    # if the text only fills half of the screen, we add some empty lines
-    out = [ i for s in [ (a,b) for a,b in zip(out, [ u"" for j in xrange(len(out)) ]) ] for i in s ]
+  emptyline = (0,u'')
+  if len(out) < MAXLINES - int(SHOWCPUTIME) - int(SHOWTIME) - int(SHOWMEM):
+    # if we don't fill the screen, we add another empty line in front of the system stats
+    out.append(emptyline)
+    
+  # append time, date, cpu load, load average
+  if SHOWCPUTIME:
+    out.append((0,u"[%02d:%02d %02d.%02d.%02d  cpu %.1f%%  load %s]" % 
+      (time.localtime().tm_hour, time.localtime().tm_min, time.localtime().tm_mday, time.localtime().tm_mon, time.localtime().tm_year % 100, cpuload(), load())))
 
-  if len(out) < MAXLINES - 3:
-    # if we still don't fill the screen, we add another empty line in front of the system stats
-    out.append(u"")
+  # append time, date
+  if SHOWTIME:
+    out.append((0,u"[%02d:%02d %02d.%02d.%04d]" % 
+      (time.localtime().tm_hour, time.localtime().tm_min, time.localtime().tm_mday, time.localtime().tm_mon, time.localtime().tm_year)))
 
+  # append memory information
+  if SHOWMEM:
+    try:
+      mi = meminfo()
+      out.append((0,u"[mem %s  free %s  cache %s]" % (mi['MemTotal'], mi['MemFree'], mi['Cached']) ))
+    except: pass
 
+  # insert empty lines according to "separation priority"
+  
+  # we do a loop for each existing priority, once with insertafter disabled, once with insertafter enabled
+  for prio,insertafter in [ (p,a) for p in xrange(1, max([ x[0] for x in out])+1) for a in (False, True) ]:
+    # we create a new list to take the elements
+    nout = []
+    for e in out:
+      # in the following blocks, we always maintain the condition that no two empty lines may follow each other
+      if e[0] == prio:
+        # if the current list element has the separation priority we're currently checking,
+        # we add a new empty line to the new list
+        if len(nout) > 0 and nout[-1] is not emptyline:
+          nout.append(emptyline)
+        # then we add the element itself
+        nout.append(e)
+        # on second run with the same prio, insertafter is True, so we append a 
+        if insertafter: 
+          nout.append(emptyline)
+      else:
+        # if the current element has not the priority we're checking, it's just added to the new list
+        # assuming that it's not an empty line following another empty line
+        if not ( e is emptyline and len(nout) > 0 and nout[-1] is emptyline ):
+          nout.append(e)
+    if len(nout) < MAXLINES:
+      # okay, did we exceed the limit? if not, we set out to our new list and let the process repeat
+      out = nout
+    else:
+      # else we break and let the garbage collector pick up the new list that got too long
+      break
+  
+  
   ### output printing
 
   # print all output lines in latin-1 encoding, because xscreensaver is not UTF8-aware   m(
-  for l in out:
+  for p,l in out:
     print( l[0:MAXLEN].encode("latin-1", 'ignore') )
-
-  # system stats are printed directly to 
-  # print time, date, cpu load, load average
-  print(u"[%02d:%02d %02d.%02d.%02d  cpu %.1f%%  load %s]" % 
-    (time.localtime().tm_hour, time.localtime().tm_min, time.localtime().tm_mday, time.localtime().tm_mon, time.localtime().tm_year % 100, cpuload(), load()))
-
-  # print memory information
-  try:
-    mi = meminfo()
-    print(u"[mem %s  free %s  cache %s]" % (mi['MemTotal'], mi['MemFree'], mi['Cached']) )
-  except: pass
 
   # print separator line
   print(u"_" * MAXLEN)
