@@ -317,10 +317,11 @@ if __name__ == '__main__':
     except: pass
 
   # insert empty lines according to "separation priority"
-  
+
+  highestpriority = max([ p for p,s in out])
   # we do a loop for each existing priority, once with insertafter disabled, once with insertafter enabled
-  for prio,insertafter in [ (p,a) for p in xrange(1, max([ x[0] for x in out])+1) for a in (False, True) ]:
-    # we create a new list to take the elements
+  for prio,insertafter in [ (p,b) for p in xrange(1, highestpriority+1) for b in (False, True) ]:
+    # we create a new list to take the elements ("new out")
     nout = []
     for e in out:
       # in the following blocks, we always maintain the condition that no two empty lines may follow each other
@@ -331,19 +332,19 @@ if __name__ == '__main__':
           nout.append(emptyline)
         # then we add the element itself
         nout.append(e)
-        # on second run with the same prio, insertafter is True, so we append a 
+        # on second run with the same prio, insertafter is True, so we append an empty line afterwards
         if insertafter: 
           nout.append(emptyline)
       else:
         # if the current element has not the priority we're checking, it's just added to the new list
-        # assuming that it's not an empty line following another empty line
+        # after checking that it's not an empty line following another empty line
         if not ( e is emptyline and len(nout) > 0 and nout[-1] is emptyline ):
           nout.append(e)
     if len(nout) < MAXLINES:
-      # okay, did we exceed the limit? if not, we set out to our new list and let the process repeat
+      # okay, did we exceed the limit? if not, we set 'out' to our new list and let the process repeat itself
       out = nout
     else:
-      # else we break and let the garbage collector pick up the new list that got too long
+      # else we break out of the for loop and let the garbage collector pick up the new list that got too long
       break
   
   
