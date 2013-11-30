@@ -77,6 +77,7 @@ SAVEDIR = '/run/shm'
 import mpd
 import pickle
 import time
+import os
 from json import load as jsonload
 from urllib2 import urlopen
 
@@ -245,12 +246,17 @@ if __name__ == '__main__':
             ct - ((ct/60)*60),
           )))
 
-        if 'title' in d and not 'artist' in d and ' - ' in d['title']:
+        t = ''
+        if not 'title' in 'd' and not 'artist' in d and 'file' in d:
+          t = os.path.splitext(os.path.basename(d['file']))[0]
+        else:
+          t = d['title']
+        if not 'artist' in d and ' - ' in t:
           # no artist, but a title -> streaming or bad tagging
           # anyway, if we have ' - ' in title, we repair that by splitting up the title string
-          out += [ (2,u"  %s" % u(s)) for s in reversed(d['title'].split(' - ')) ]
+          out += [ (2,u"  %s" % u(s)) for s in reversed(t.split(' - ')) ]
         else:
-          if "title" in d: out.append((2,u"  %s" % u(d["title"])))
+          out.append((2,u"  %s" % u(t)))
           if "artist" in d: out.append((2,u"  %s" % u(d["artist"])))
           if "album" in d: out.append((2,u"  %s" % u(d["album"])))
       except Exception as e:
