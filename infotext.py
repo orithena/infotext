@@ -81,7 +81,6 @@ import os
 from json import load as jsonload
 from urllib2 import urlopen
 
-
 ### some functions
 
 def timelist():
@@ -247,7 +246,7 @@ if __name__ == '__main__':
           )))
 
         t = ''
-        if not 'title' in 'd' and not 'artist' in d and 'file' in d:
+        if (not 'title' in d) and ('file' in d):
           t = os.path.splitext(os.path.basename(d['file']))[0]
         else:
           t = d['title']
@@ -261,7 +260,7 @@ if __name__ == '__main__':
           if "album" in d: out.append((2,u"  %s" % u(d["album"])))
       except Exception as e:
         # something went very wrong in the program code above
-        print("ERR while interpreting mpd data: " + e.message)
+        print("ERR b/c of mpd data: " + str(e))
     elif d is not None and "state" in d:
       # mpd found, but not playing
       out.append((1,u"[mpd status: %s]" % d["state"]))
