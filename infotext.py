@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-""" infotext.py v0.1
+""" infotext.py v0.2
 
 Simply prints data and stats from various sources. Most useful as input
 program to xscreensavers that simply takes some text and displays it.
@@ -67,7 +67,7 @@ WEATHERAPPID = ''
 MPDHOST      = 'localhost'
 MPDPORT      = 6600
 
-FORTUNEOPTS  = [ '-s', '-o', '-n', '%d' % MAXLEN ]
+FORTUNEOPTS  = [ '-s', '-o', '-n', '%d' % (MAXLEN*5,) ]
 
 # the following config variables probably do not need to be changed
 WEATHERDATAURL = 'http://api.openweathermap.org/data/2.5/weather?q=%s&units=metric&APPID=%s'
@@ -81,6 +81,7 @@ import mpd
 import pickle
 import time
 import os
+import textwrap
 from json import load as jsonload
 from urllib2 import urlopen
 from subprocess import check_output
@@ -208,6 +209,59 @@ def fetch_mpd_data():
   return d
 
 
+### format weather data
+def interpret_rain(c):
+  if 'rain' in c:
+    for k,v in c['rain'].iteritems():
+      return "rain %.0fmm/%s" % (v,k)
+  elif 'snow' in c:
+    for k,v in c['snow'].iteritems():
+      return "snow %.0fmm/%s" % (v,k)
+  else:
+    return "no rain"
+    
+def count_leading_whitespace(s):
+  count = 0
+  for c in s:
+    if c == " ":
+      count += 1
+    elif c == "\t":
+      count += 4
+    else:
+      break
+  return count
+    
+def rewrap(p):
+  #print repr(p)
+  pars = p.splitlines()
+  outpars = []
+  outtext = ""
+  indent = -2
+  for par in pars:
+    cur_indent = count_leading_whitespace(par)
+    if ": " in par or ":\t" in par:
+      indent = cur_indent
+      outpars.append((indent,par.strip(),))
+    elif indent-1 <= cur_indent <= indent+1:
+      outpars[-1] = (indent, (str(outpars[-1][1]) + (par.strip() if len(outpars[-1][1]) < 1 else " " + par.strip())), )
+    else:
+      indent = cur_indent
+      outpars.append((indent,par.strip(),))
+  #print repr(outpars)
+  for parindent,par in outpars:
+    #print repr(parindent)
+    #print repr(par)
+    outtext += textwrap.fill(par, width=MAXLEN, replace_whitespace=True, initial_indent=" "*parindent, subsequent_indent=" "*parindent).replace("  ", " ") + "\n"
+  return outtext
+  
+def fortune():
+  text = check_output(['fortune'] + FORTUNEOPTS).rstrip()
+  #print repr(text)
+  paragraphs = text.split("\n\n")
+  out = "\n".join([ p if all([len(l) < MAXLEN for l in p.splitlines()]) else rewrap(p) for p in paragraphs ])
+  #print repr(out)
+  return out.replace("\t", "  ").splitlines()
+
 ### main program
 
 if __name__ == '__main__':
@@ -274,17 +328,6 @@ if __name__ == '__main__':
       out.append((1,u"[the mpd at %s:%d is a lie]" % (MPDHOST, MPDPORT)))
 
 
-  ### format weather data
-  def interpret_rain(c):
-    if 'rain' in c:
-      for k,v in c['rain'].iteritems():
-        return "rain %.0fmm/%s" % (v,k)
-    elif 'snow' in c:
-      for k,v in c['snow'].iteritems():
-        return "snow %.0fmm/%s" % (v,k)
-    else:
-      return "no rain"
-
   if SHOWWEATHER:
     try:
       c = fetch_weather_data()
@@ -305,17 +348,20 @@ if __name__ == '__main__':
           fore += u'  %s %.0f/%.0f°C %s' % (wday(dn+1), d['temp']['min'], d['temp']['max'], d['weather'][0]['main'])
         out.append((2,fore))
     except: 
-      pprint(c)
+      #pprint(c)
+      pass
 
+  emptyline = (0,u'')
   if SHOWFORTUNE:
     try:
-      out.append((1, check_output(['fortune'] + FORTUNEOPTS).strip() ))
+      out.append(emptyline)
+      for l in fortune():
+        out.append((0, l ))
     except Exception as e:
-      out.append((1, "Sorry, no fortune %s" % e.message))
+      out.append((1, u"Sorry, no fortune %s" % e.message))
 
   ### output postprocessing and system info
   
-  emptyline = (0,u'')
   if len(out) < MAXLINES - int(SHOWCPUTIME) - int(SHOWTIME) - int(SHOWMEM):
     # if we don't fill the screen, we add another empty line in front of the system stats
     out.append(emptyline)
